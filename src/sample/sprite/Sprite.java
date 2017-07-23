@@ -4,7 +4,9 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import sample.*;
@@ -22,6 +24,7 @@ public abstract class Sprite extends Region {
     float aAcceleration = 0.001F;
 
     float maxForce = Settings.SPRITE_MAX_FORCE;
+    float speed = 3;
     float maxSpeed = 3;
 
     Node view;
@@ -44,9 +47,8 @@ public abstract class Sprite extends Region {
     OptionsMenu optionsMenu = new OptionsMenu();
 
     boolean alive;
-
-
     boolean dragable = false;
+    boolean keyboardControlled = false;
 
     public Sprite(Layer layer, PVector location, PVector velocity, PVector acceleration, float m) {
         this.alive = true;
@@ -67,27 +69,25 @@ public abstract class Sprite extends Region {
         getChildren().add(view);
         layer.getChildren().add(this);
 
-        addOptionMouseCotrole();
+        addOptionCotrole();
         addOptionRemoveSprite();
         enableOptionMenu();
     }
 
     public abstract Node createView();
 
-    public void move() {
+    public void rotate(){
+        aVelocity += aAcceleration;
+        aVelocity = Utils.constrain(aVelocity, -0.1F, 0.1F);
+        angle += aVelocity;
+        aAcceleration *= 0;
+    }
 
+    public void move() {
         // set velocity depending on acceleration
         velocity.add(acceleration);
-
         // change location depending on velocity
         location.add(velocity);
-
-
-        if(!isDragable()){
-            angle = (float) velocity.heading2D();
-        }else{
-
-        }
         // clear acceleration;
         acceleration.mult(0);
     }
@@ -140,12 +140,17 @@ public abstract class Sprite extends Region {
         applyForce(drag);
     }
 
-    public void lookAt(PVector target) {
-        PVector desired = PVector.sub(target, location);
-        desired.normalize();
+    public void applyForce(PVector force) {
+        PVector f = PVector.div(force, m);
+        acceleration.add(f);
+    }
 
-        //PVector steer = PVector.sub(desired, velocity);
-        angle = 36;
+    //-----------------------------
+    // Behaivor
+    //-----------------------------
+    public void lookAt(PVector f){
+        PVector force = PVector.sub(f, location);
+        setAngle((float)force.heading2D());;
     }
 
     public void seek(PVector target) {
@@ -203,17 +208,14 @@ public abstract class Sprite extends Region {
         theta += speed;
     }
 
-    public void applyForce(PVector force) {
-        PVector f = PVector.div(force, m);
-        acceleration.add(f);
-    }
-
     //------------------------------------
     // adding event handlers
     //------------------------------------
+
     //-------------------------------------
-    // Enable options menu for set scene
+    // Enable options menu
     //-------------------------------------
+    // Adding menu to scene
     public void enableOptionMenu() {
         Sprite sprite = this;
         EventHandler<MouseEvent> handler = new EventHandler<MouseEvent>() {
@@ -226,11 +228,13 @@ public abstract class Sprite extends Region {
         };
         sprite.addEventHandler(MouseEvent.MOUSE_PRESSED, handler);
     }
-    //-------------------------------------
     // Adding the menu items to sprite
-    //-------------------------------------
-    public void addOptionMouseCotrole() {
+    public void addOptionCotrole() {
+        //----------------------------
+        // Mouse controlles
+        //----------------------------
         Sprite sprite = this;
+        Menu parentMenu = new Menu("Controle sprite");
         CheckMenuItem item1 = new CheckMenuItem("Sprite becomes draggable");
         item1.setSelected(false);
         item1.setOnAction(new EventHandler<ActionEvent>() {
@@ -243,23 +247,38 @@ public abstract class Sprite extends Region {
                 }else{
                     mouseGestures.makeUnDraggable(sprite);
                 }
-                System.out.println(sprite.isDragable());
             }
         });
-        getOptionsMenu().addMenuItem(item1);
+        //------------------------------
+        // KeyboardControlles
+        //------------------------------
+        CheckMenuItem item2 = new CheckMenuItem("Sprite becomes controllable with keys");
+        item2.setSelected(false);
+        item2.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                sprite.setKeyboardControlled(item2.isSelected());
+                System.out.println("setting sprite : " +sprite.isKeyboardControlled());
+
+            }
+        });
+        parentMenu.getItems().addAll(item1,item2);
+
+        getOptionsMenu().addMenuItem(parentMenu);
+
     }
     public void addOptionRemoveSprite(){
-        System.out.println("Ik werkt eerst ");
         MenuItem menuItem = new MenuItem("Remove Sprite");
         menuItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                System.out.println("ik werkt");
                 setAlive(false);
             }
         });
         getOptionsMenu().addMenuItem(menuItem);
     }
+
+
     //------------------------------------
     // Setters
     //------------------------------------
@@ -267,7 +286,6 @@ public abstract class Sprite extends Region {
         location.setX(x);
         location.setY(y);
     }
-
     public void setLocationOffset(float x, float y) {
         location.setX(location.getX() + x);
         location.setY(location.getY() + y);
@@ -278,6 +296,12 @@ public abstract class Sprite extends Region {
     public void setDragable(boolean dragable) {
         this.dragable = dragable;
     }
+    public void setKeyboardControlled(boolean b){
+        this.keyboardControlled = b;
+    }
+    public void setAngle(float angle){
+        this.angle = angle;
+    }
 
     //------------------------------------
     // Getters
@@ -285,19 +309,15 @@ public abstract class Sprite extends Region {
     public PVector getLocation() {
         return location;
     }
-
     public PVector getVelocity() {
         return velocity;
     }
-
     public float getM() {
         return m;
     }
-
     public float getH() {
         return h;
     }
-
     public float getW() {
         return w;
     }
@@ -305,8 +325,13 @@ public abstract class Sprite extends Region {
         return optionsMenu;
     }
     public boolean isAlive(){
-        System.out.println("i am alive");
         return alive;
+    }
+    public boolean isKeyboardControlled(){
+        return keyboardControlled;
+    }
+    public float getAngle(){
+        return angle;
     }
 
 

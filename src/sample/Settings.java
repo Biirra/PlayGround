@@ -9,16 +9,21 @@ public class Settings {
     public static double SCENE_WIDTH = 1280;
     public static double SCENE_HEIGHT = 720;
 
-    public static int TESTBALL_COUNT = 0;
-    public static int MOVER_COUNT = 0;
-    public static int ATRACTOR_COUNT = 0;
-    public static int FOLLOWER_COUNT = 0;
-
     public static float SPRITE_MAX_SPEED = 8;
     public static int SPRITE_MAX_FORCE = 20;
 
     public static int SPRITE_SLOW_DOWN_DISTANCE = 100; //pixels
 
+
+    public static int SPACESHIP_COUNT = 1;
+    public static int CAR_COUNT = 0;
+
+    //----------------------------------
+    // Default Sprite Data
+    //----------------------------------
+    public static float DEFAULT_MASS = 3;
+    public static float DEFAULT_SPEED = 1;
+    public static float DEFAULT_TURNSPEED = 0.1F;
 
     //------------------------------------------
     //  Tile Size

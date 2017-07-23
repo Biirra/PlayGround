@@ -7,21 +7,22 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
-import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import sample.sprite.Car;
+import sample.sprite.SpaceShip;
 import sample.sprite.Sprite;
 
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
@@ -33,14 +34,11 @@ public class Main extends Application {
 
     Layer playfield;
 
-    List<Henry> allHenrys = new ArrayList<>();
-    List<TestBall> allTestBalls = new ArrayList<>();
-    List<Follower> allFollowers = new ArrayList<>();
-    List<Attractor> allAttractors = new ArrayList<>();
 
     AnimationTimer gameloop;
 
     PVector mouseLocation = new PVector(0,0);
+    KeyInputHandler keyInputHandler = new KeyInputHandler();
 
     Scene scene;
 
@@ -49,6 +47,8 @@ public class Main extends Application {
 
     OptionsMenu optionsMenu = new OptionsMenu();
 
+    List<SpaceShip> allSpaceShips = new ArrayList<>();
+    List<Car> allCars = new ArrayList<>();
 
     //----------------------------------
     // for checking the FPS
@@ -105,20 +105,9 @@ public class Main extends Application {
     }
 
     private void prepareSprites(){
-        // add movers
-        for( int i = 0; i < Settings.MOVER_COUNT; i++) {
-            addHenry();
+        for(int i = 0; i < Settings.SPACESHIP_COUNT; i++){
+            addSpaceShip();
         }
-        for( int i = 0; i < Settings.TESTBALL_COUNT; i++) {
-            addTestball();
-        }
-        for( int i = 0; i < Settings.FOLLOWER_COUNT; i++){
-            addFollower();
-        }
-        for( int i = 0; i < Settings.ATRACTOR_COUNT; i++){
-            addAttractor();
-        }
-
     }
 
     public void startSimulation(){
@@ -145,67 +134,46 @@ public class Main extends Application {
                 //------------------------------------
                 //  Checking if sprite is still alive
                 //------------------------------------
-                Iterator<Follower> allFollowersIter = allFollowers.iterator();
-                while ( allFollowersIter.hasNext() ) {
-                    Sprite follower = allFollowersIter.next();
-                    System.out.println(follower);
-                    if (!follower.isAlive())
-                    {
-                        follower.setVisible(false);
-                        allFollowersIter.remove();
-                    }
-                }
-                Iterator<Attractor> allAttractorIter = allAttractors.iterator();
-                while ( allAttractorIter.hasNext() ) {
-                    Sprite attractor = allAttractorIter.next();
-                    if(!attractor.isAlive()){
-                        attractor.setVisible(false);
-                        allAttractorIter.remove();
-                    }
-                }
+//                Iterator<Follower> allFollowersIter = allFollowers.iterator();
+//                while ( allFollowersIter.hasNext() ) {
+//                    Sprite follower = allFollowersIter.next();
+//                    if (!follower.isAlive())
+//                    {
+//                        follower.setVisible(false);
+//                        allFollowersIter.remove();
+//                    }
+//                }
                 //------------------------------
                 // setting forces and what not
                 //------------------------------
-                allHenrys.forEach(henry -> {
-                });
-                allTestBalls.forEach(testBall -> {
-                });
-                allFollowers.forEach(follower -> {
-                    float c = 0.01F;
-                    float normal = 1F;
-                    float frictionMag = c*normal;
-
-                    PVector friction = PVector.copy(follower.getVelocity());
-                    friction.mult(-1);
-                    friction.normalize();
-                    friction.mult(frictionMag);
-
-                    //follower.applyForce(friction);
-                });
-                allAttractors.forEach(attractor -> {
-                    System.out.println(attractor);
-                    allFollowers.forEach(follower -> {
-                        follower.seek(attractor.getLocation());
-                    });
-                });
+//                allFollowers.forEach(follower -> {
+//                    float c = 0.01F;
+//                    float normal = 1F;
+//                    float frictionMag = c*normal;
+//
+//                    PVector friction = PVector.copy(follower.getVelocity());
+//                    friction.mult(-1);
+//                    friction.normalize();
+//                    friction.mult(frictionMag);
+//
+//                    //follower.applyForce(friction);
+//                });
 
 
                 //--------------------------
                 // moving
                 //--------------------------
-                allHenrys.forEach(Sprite::move);
-                allTestBalls.forEach(Sprite::move);
-                allTestBalls.forEach(Sprite::checkEdges);
-                allFollowers.forEach(Sprite::move);
+                allSpaceShips.forEach(spaceShip -> {
+                    //handeling userinput
+                    spaceShip.glide(keyInputHandler);
+                });
 
+                allSpaceShips.forEach(Sprite::rotate);
+                allSpaceShips.forEach(Sprite::move);
                 //--------------------------
                 // display
                 //--------------------------
-                allAttractors.forEach(Sprite::display);
-                allHenrys.forEach(Sprite::display);
-                allTestBalls.forEach(Sprite::display);
-                allFollowers.forEach(Sprite::display);
-                //System.out.println(playfield.getChildren());
+                allSpaceShips.forEach(Sprite::display);
             }
         };
 
@@ -215,92 +183,28 @@ public class Main extends Application {
     //------------------------------
     // Creating Sprites
     //------------------------------
-    public void addFollower(){
-        Layer layer = playfield;
+    public void addSpaceShip(){
+        PVector location = new PVector((float)Settings.SCENE_WIDTH/2, (float)Settings.SCENE_HEIGHT/2);
+        PVector velocity = new PVector(0,0);
+        PVector acceleration = new PVector(0,0);
+        float mass = Settings.DEFAULT_MASS;
 
-        // random location
-        float x = Utils.randomFloat(0,(float)Settings.SCENE_WIDTH);
-        float y = Utils.randomFloat(0,(float)Settings.SCENE_HEIGHT);
-
-        float mass = Utils.randomFloat(0.4F, 5);
-
-        PVector location = new PVector( x,y);
-        PVector velocity = new PVector( 0,0);
-        PVector acceleration = new PVector( 0,0);
-
-        // create sprite and add to layer
-        Follower follower = new Follower( layer, location, velocity, acceleration, mass);
-
-        allFollowers.add(follower);
+        SpaceShip spaceShip = new SpaceShip(playfield, location, velocity, acceleration, mass);
+        allSpaceShips.add(spaceShip);
     }
+    public void addCar(){
+        PVector location = new PVector((float)Settings.SCENE_WIDTH/2, (float)Settings.SCENE_HEIGHT/2);
+        PVector velocity = new PVector(0,0);
+        PVector acceleration = new PVector(0,0);
+        float mass = Settings.DEFAULT_MASS*3;
 
-    public void addHenry(){
-        Layer layer = playfield;
-
-        // random location
-        float x = 50;
-        float y = Utils.randomFloat(0,(float)Settings.SCENE_HEIGHT);
-
-        float mass = 3;
-
-        // create Henry data
-        PVector location = new PVector( x,y);
-        PVector velocity = new PVector( 0,0);
-        PVector acceleration = new PVector( 0,0);
-
-
-        // create sprite and add to layer
-        Henry henry = new Henry( layer, location, velocity, acceleration, mass);
-
-        allHenrys.add(henry);
-    }
-
-    public void addTestball(){
-        Layer layer = playfield;
-
-        // random location
-        float x = Utils.randomFloat(0,(float)Settings.SCENE_WIDTH);
-        float y = Utils.randomFloat(0,(float)Settings.SCENE_HEIGHT);
-
-        float mass = 3;
-
-        // create Henry data
-        PVector location = new PVector( x,y);
-        PVector velocity = new PVector( 0,0);
-        PVector acceleration = new PVector( 0,0);
-
-
-        // create sprite and add to layer
-        TestBall testBall = new TestBall( layer, location, velocity, acceleration, mass);
-
-        allTestBalls.add(testBall);
-    }
-    public void addAttractor(){
-
-        Layer layer = playfield;
-
-        // random location
-        float x = Utils.randomFloat(0,(float)Settings.SCENE_WIDTH);
-        float y = Utils.randomFloat(0,(float)Settings.SCENE_HEIGHT);
-
-        float mass = 3;
-
-        // create Henry data
-        PVector location = new PVector( x,y);
-        PVector velocity = new PVector( 0,0);
-        PVector acceleration = new PVector( 0,0);
-
-        Attractor attractor = new Attractor(layer, location, velocity, acceleration, mass);
-
-        allAttractors.add(attractor);
+        Car car = new Car(playfield, location, velocity, acceleration, mass);
+        allCars.add(car);
     }
     //-----------------------------------
     //  Removing Sprite
     //-----------------------------------
-    public void removeAttractor(Sprite sprite){
 
-        allAttractors.remove(sprite);
-    }
 
     //-----------------------------------
     //  Adding Event Handlers
@@ -311,6 +215,12 @@ public class Main extends Application {
         scene.addEventFilter(MouseEvent.ANY, e -> {
             mouseLocation.set((float)e.getX(), (float)e.getY());
             mousePos.setText(String.format("Current MousePos X: %.0f  /  Y: %.0f", mouseLocation.x, mouseLocation.y));
+        });
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            keyInputHandler.pressKey(event);
+        });
+        scene.addEventFilter(KeyEvent.KEY_RELEASED, event -> {
+            keyInputHandler.releaseKey(event);
         });
         addOptionSpawnSprite();
         enableOptionMenu();
@@ -342,13 +252,13 @@ public class Main extends Application {
         childMenuItem1.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                addAttractor();
+
             }
         });
         childMenuItem2.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
-                addFollower();
+
             }
         });
 

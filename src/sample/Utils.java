@@ -86,5 +86,14 @@ public class Utils {
         Random rand = new Random();
         return rand.nextFloat() * (max - min) + min;
     }
+    public static float constrain(float num, float min, float max) {
+        if (num > max) {
+            num = max;
+        }
+        if (num < min) {
+            num = min;
+        }
+        return num;
+    }
 
 }
